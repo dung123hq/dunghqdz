@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Đình Dũng</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      -webkit-overflow-scrolling: none;
+      overscroll-behavior: none;
+    }
+
+    body {
+      background: black;
+      font-family: 'Arial', sans-serif;
+      perspective: 1000px;
+      perspective-origin: center center;
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease-out;
+    }
+
+    .container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.3s cubic-bezier(.25,.8,.25,1);
+      transform: rotateY(20deg);
+    }
+
+    .falling-layer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+    }
+
+    .stars-container {
+      position: fixed;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      transform-style: preserve-3d;
+    }
+
+    .star-layer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+    }
+
+    .message {
+      position: absolute;
+      color: #ffffff;
+      font-size: clamp(20px, 5vw, 35px);
+      text-shadow: 0 0 10px #ff9999, 0 0 20px #ff666b;
+      white-space: nowrap;
+      animation: fallText linear infinite;
+      transform-style: preserve-3d;
+      z-index: 2;
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle linear infinite;
+      z-index: 1;
+    }
+
+    .copyright {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      color: rgba(255, 255, 255, 0.078);
+      font-size: clamp(8px, 2vw, 12px);
+      font-family: 'Arial', sans-serif;
+      z-index: 1000;
+      pointer-events: none;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.03);
+    }
+
+    .heart {
+      position: absolute;
+      z-index: 2;
+      pointer-events: none;
+      animation: fallHeart linear infinite;
+      /* Hiệu ứng bóng cho đẹp */
+      filter: drop-shadow(0 0 8px #f24d4d);
+    }
+
+    @keyframes fallText {
+      0% {
+        transform: translateY(-100px) translateZ(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) translateZ(0);
+        opacity: 0;
+      }
+    }
+
+    @keyframes twinkle {
+      0%, 100% {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes fallHeart {
+      0% {
+        transform: translateY(-100px) rotateY(0deg) translateZ(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotateY(360deg) translateZ(0);
+        opacity: 0;
+      }
+    }
+
+    /* Media Queries */
+    @media screen and (max-width: 768px) {
+      .container {
+        transform: rotateY(10deg);
+      }
+      
+      .message {
+        font-size: clamp(16px, 4vw, 25px);
+      }
+    }
+
+    @media screen and (max-width: 480px) {
+      .container {
+        transform: rotateY(5deg);
+      }
+      
+      .message {
+        font-size: clamp(14px, 3.5vw, 20px);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<audio id="bgMusic" loop>
+  <source src="music.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+<div class="stars-container">
+  <div class="star-layer" style="transform: translateZ(-1000px);"></div>
+  <div class="star-layer" style="transform: translateZ(0px);"></div>
+  <div class="star-layer" style="transform: translateZ(1000px);"></div>
+</div>
+<div class="container">
+  <div class="falling-layer" style="transform: translateZ(-1000px);"></div>
+  <div class="falling-layer" style="transform: translateZ(-500px);"></div>
+  <div class="falling-layer" style="transform: translateZ(0px);"></div>
+  <div class="falling-layer" style="transform: translateZ(500px);"></div>
+  <div class="falling-layer" style="transform: translateZ(1000px);"></div>
+</div>
+<div class="copyright">Longdev@2025</div>
+
+<script>
+  // Tạo nhiều dòng chữ với các tin nhắn khác nhau
+  const messages = [
+   'Dũng ♡ Quỳnh',
+    '1/6 vui vẻ nha bé iuu♡',
+    'ai lớp diu nọong♡','cá điếp nọng '
+  ];
+
+  const container = document.querySelector('.container');
+  const layers = document.querySelectorAll('.falling-layer');
+
+  function createMessage(layer) {
+    const msg = document.createElement('div');
+    msg.className = 'message';
+    msg.style.left = Math.random() * window.innerWidth + 'px';
+    msg.style.top = Math.random() * window.innerHeight + 'px';
+    
+    // Tốc độ rơi khác nhau cho mỗi lớp
+    const layerDepth = parseInt(layer.style.transform.match(/translateZ\(([-\d]+)px\)/)[1]);
+    const speedMultiplier = 1 + (Math.abs(layerDepth) / 2000); // Tốc độ tăng theo độ sâu
+    msg.style.animationDuration = (9 + Math.random() * 9) * speedMultiplier + 's';
+    
+    // Kích thước khác nhau cho mỗi lớp
+    const sizeMultiplier = 1 - (Math.abs(layerDepth) / 2000); // Kích thước giảm theo độ sâu
+    msg.style.fontSize = (35 * sizeMultiplier) + 'px';
+    
+    msg.innerText = messages[Math.floor(Math.random() * messages.length)];
+    msg.addEventListener('animationend', function() {
+      msg.remove();
+      createMessage(layer);
+    });
+    layer.appendChild(msg);
+  }
+
+  // Thêm code xử lý audio
+  const bgMusic = document.getElementById('bgMusic');
+  
+  // Hàm để bắt đầu phát nhạc
+  function playMusic() {
+    bgMusic.play().catch(function(error) {
+      console.log("Audio playback failed:", error);
+    });
+  }
+
+  // Thêm sự kiện click để bắt đầu phát nhạc
+  document.addEventListener('click', function() {
+    playMusic();
+  }, { once: true });
+
+  // Thêm sự kiện touch để bắt đầu phát nhạc trên mobile
+  document.addEventListener('touchstart', function() {
+    playMusic();
+  }, { once: true });
+
+  // Điều chỉnh số lượng phần tử dựa trên kích thước màn hình
+  function getElementCount(layerDepth) {
+    const screenWidth = window.innerWidth;
+    let baseCount = 15 + (Math.abs(layerDepth) / 200);
+    
+    if (screenWidth <= 480) {
+      baseCount = Math.floor(baseCount * 0.5);
+    } else if (screenWidth <= 768) {
+      baseCount = Math.floor(baseCount * 0.7);
+    }
+    
+    return Math.floor(baseCount);
+  }
+
+  // Cập nhật hàm createMessage để sử dụng getElementCount
+  layers.forEach(layer => {
+    const layerDepth = parseInt(layer.style.transform.match(/translateZ\(([-\d]+)px\)/)[1]);
+    const elementCount = getElementCount(layerDepth);
+    for (let i = 0; i < elementCount; i++) {
+      createMessage(layer);
+    }
+  });
+
+  // Tạo hiệu ứng sao lấp lánh
+  function createStars() {
+    const starLayers = document.querySelectorAll('.star-layer');
+    
+    starLayers.forEach(layer => {
+      const layerDepth = parseInt(layer.style.transform.match(/translateZ\(([-\d]+)px\)/)[1]);
+      // Lớp càng xa thì càng nhiều sao
+      const starCount = Math.floor(200 + (Math.abs(layerDepth) / 10));
+      
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * window.innerWidth + 'px';
+        star.style.top = Math.random() * window.innerHeight + 'px';
+        
+        // Kích thước sao khác nhau cho mỗi lớp
+        const sizeMultiplier = 1 - (Math.abs(layerDepth) / 2000);
+        const size = (1 + Math.random() * 2) * sizeMultiplier;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        
+        // Tốc độ nhấp nháy khác nhau cho mỗi lớp
+        const speedMultiplier = 1 + (Math.abs(layerDepth) / 2000);
+        star.style.animationDuration = (1 + Math.random() * 2) * speedMultiplier + 's';
+        star.style.animationDelay = Math.random() * 2 + 's';
+        
+        layer.appendChild(star);
+      }
+    });
+  }
+
+  createStars();
+
+  // Thêm chức năng xoay khi chạm
+  let startX = 0;
+  let currentRotation = 0;
+  const body = document.body;
+
+  // Xử lý sự kiện touch
+  document.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+  });
+
+  document.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - startX;
+    
+    // Tính toán góc xoay (mỗi 10px di chuyển = 1 độ xoay)
+    currentRotation += diff * 0.1;
+    
+    // Giới hạn góc xoay trong khoảng -45 đến 45 độ
+    currentRotation = Math.max(-45, Math.min(45, currentRotation));
+    
+    // Áp dụng xoay
+    container.style.transform = `rotateY(${currentRotation}deg)`;
+    
+    startX = currentX;
+  });
+
+  // Xử lý sự kiện mouse
+  let isMouseDown = false;
+  let lastMouseX = 0;
+
+  document.addEventListener('mousedown', (e) => {
+    isMouseDown = true;
+    lastMouseX = e.clientX;
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isMouseDown) return;
+    
+    const currentX = e.clientX;
+    const diff = currentX - lastMouseX;
+    
+    // Tính toán góc xoay (mỗi 10px di chuyển = 1 độ xoay)
+    currentRotation += diff * 0.1;
+    
+    // Giới hạn góc xoay trong khoảng -45 đến 45 độ
+    currentRotation = Math.max(-45, Math.min(45, currentRotation));
+    
+    // Áp dụng xoay
+    container.style.transform = `rotateY(${currentRotation}deg)`;
+    
+    lastMouseX = currentX;
+  });
+
+  document.addEventListener('mouseup', () => {
+    isMouseDown = false;
+  });
+
+  document.addEventListener('mouseleave', () => {
+    isMouseDown = false;
+  });
+
+  function createHeart(layer) {
+    const heart = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    heart.setAttribute('viewBox', '0 0 32 29.6');
+    heart.classList.add('heart');
+    heart.style.left = Math.random() * window.innerWidth + 'px';
+    heart.style.top = Math.random() * window.innerHeight + 'px';
+    
+    // Tốc độ rơi khác nhau cho mỗi lớp
+    const layerDepth = parseInt(layer.style.transform.match(/translateZ\(([-\d]+)px\)/)[1]);
+    const speedMultiplier = 1 + (Math.abs(layerDepth) / 2000);
+    const duration = (9 + Math.random() * 9) * speedMultiplier;
+    heart.style.animationDuration = duration + 's';
+    
+    // Kích thước khác nhau cho mỗi lớp
+    const sizeMultiplier = 1 - (Math.abs(layerDepth) / 2000);
+    const size = 32 * sizeMultiplier;
+    heart.setAttribute('width', size);
+    heart.setAttribute('height', size * 0.925);
+    
+    heart.innerHTML = `<path d="M23.6,0c-2.6,0-5,1.3-6.6,3.3C15.4,1.3,13,0,10.4,0C4.7,0,0,4.7,0,10.4c0,11.1,16,19.2,16,19.2s16-8.1,16-19.2C32,4.7,27.3,0,23.6,0z" fill="#ff6699"/>`;
+    heart.addEventListener('animationend', function() {
+      heart.remove();
+      createHeart(layer);
+    });
+    layer.appendChild(heart);
+  }
+
+  // Cập nhật hàm createHeart để sử dụng getElementCount
+  layers.forEach(layer => {
+    const layerDepth = parseInt(layer.style.transform.match(/translateZ\(([-\d]+)px\)/)[1]);
+    const elementCount = getElementCount(layerDepth);
+    for (let i = 0; i < elementCount; i++) {
+      createHeart(layer);
+    }
+  });
+
+  // Thêm code để ngăn chặn scroll
+  document.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('wheel', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+
+  // Ngăn chặn scroll khi kéo thả
+  document.addEventListener('dragstart', function(e) {
+    e.preventDefault();
+  });
+
+  // Ngăn chặn scroll khi double tap trên mobile
+  document.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+  });
+</script>
+
+</body>
+</html>
